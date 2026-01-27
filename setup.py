@@ -12,9 +12,12 @@ setup(
                 "kernels/sobel.cu",
                 "kernels/dilation.cu",
                 "kernels/erosion.cu",
+                "kernels/pyrDown.cu",
                 "kernels/module.cpp",
             ],
-            extra_compile_args={"cxx": ["-O2"]},
+            extra_compile_args={"cxx": ["-O2"],
+            'nvcc': ['-O2', '-allow-unsupported-compiler', '-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH']
+            },
         ),
     ],
     cmdclass={"build_ext": BuildExtension},
