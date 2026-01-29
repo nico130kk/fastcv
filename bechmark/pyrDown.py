@@ -5,7 +5,7 @@ import torch
 import fastcv
 import numpy as np
 
-def benchmark_pyrDown(sizes=[1024, 2048, 4096], runs=50):
+def benchmark_pyrDown(sizes=[1024, 2048, 4096, 4096*5], runs=50):
     results = []
     
     for size in sizes:

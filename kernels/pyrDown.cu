@@ -28,7 +28,6 @@ __global__ void pyrDownKernel(scalar_t* in, scalar_t* out, int width, int height
 
         for (int c = 0; c < channels; ++c) {
             float sum = 0;
-            float weightSum = 0;
 
             for (int fy = -2; fy <= 2; ++fy) {
                 for (int fx = -2; fx <= 2; ++fx) {
@@ -42,25 +41,17 @@ __global__ void pyrDownKernel(scalar_t* in, scalar_t* out, int width, int height
                     int weights = sharedWeights[fx + 2] * sharedWeights[fy + 2];
 
                     sum += static_cast<float>(pixelValue) * weights;
-                    weightSum += static_cast<float>(weights);
                 }
             }
             int out_idx = (row * outWidth + col) * channels + c;
-            out[out_idx] = static_cast<unsigned char>((sum / weightSum) + 0.5);
+            out[out_idx] = static_cast<unsigned char>((sum/256) + 0.5);
         }
     }
 }
 
-
-
-
-
-
-
-
 torch::Tensor pyrDown(torch::Tensor img) {
-    nvtxRangePushA("pyrDown_Host_Launch");
-
+    nvtxRangePushA("pyrDownTotal");
+    nvtxRangePushA("Setup");
     assert(img.device().type() == torch::kCUDA);
     assert(img.dtype() == torch::kByte);
 
@@ -76,6 +67,9 @@ torch::Tensor pyrDown(torch::Tensor img) {
     auto result = torch::empty({ outHeight, outWidth, channels },
         torch::TensorOptions().dtype(torch::kByte).device(img.device()));
 
+    nvtxRangePop();
+    nvtxRangePushA("Kernel");
+
     AT_DISPATCH_ALL_TYPES(img.scalar_type(), "pyrDown", ([&] {
         pyrDownKernel<scalar_t> << <dimGrid, dimBlock, 0, at::cuda::getCurrentCUDAStream() >> > (
             img.data_ptr<scalar_t>(),
@@ -84,6 +78,8 @@ torch::Tensor pyrDown(torch::Tensor img) {
         }));
 
     C10_CUDA_KERNEL_LAUNCH_CHECK();
+
+    nvtxRangePop();
 
     nvtxRangePop();
 
